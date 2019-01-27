@@ -57,7 +57,7 @@ def freq_handler(unused_addr, args, ch1 ):
         if packet_counter is not 0:
             print( "Somehow a packet was dropped!" )
         #print( str(datetime.datetime.utcnow()), str('ABDTG'), alph, beta, delt, thet, gamm )
-        print( timestamp, alph, beta, delt, thet, gamm )
+        #print( timestamp, alph, beta, delt, thet, gamm )
         data_entry = ( alph, beta, gamm, delt, thet, timestamp ) 
         cursor.execute( add_entry, data_entry )
         cnx.commit()
@@ -67,7 +67,7 @@ def freq_handler(unused_addr, args, ch1 ):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--ip",
-                        default="192.168.1.5",
+                        default="192.168.1.3",
                         help="The ip to listen on")
     parser.add_argument("--port",
                         type=int,
