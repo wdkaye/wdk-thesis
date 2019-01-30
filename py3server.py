@@ -7,11 +7,9 @@ import mysql.connector
 from pythonosc import dispatcher
 from pythonosc import osc_server
 
-
 def eeg_handler(unused_addr, args, ch1, ch2="", ch3="", ch4="", ch5=""):
     #print("EEG (uV) per channel: ", ch1, ch2, ch3, ch4, ch5)
     print( str(datetime.datetime.utcnow()), ch1, ch2, ch3, ch4, ch5)
-    #print( str(datetime.datetime.utcnow()), ch1 )
 
 alph = 0
 beta = 0
@@ -22,7 +20,13 @@ packet_counter = 0
 timestamp = 0
 cnx = mysql.connector.connect(user='root', database='brainwave_freq')
 cursor = cnx.cursor()
-add_entry = ("INSERT INTO bands (alpha, beta, gamma, delta, theta, timestamp) VALUES (%s, %s, %s, %s, %s, %s)" )
+table_name = ""
+addstring = "INSERT INTO {} (alpha, beta, gamma, delta, theta, timestamp) VALUES (%s, %s, %s, %s, %s, %s)"
+add_entry = ()
+
+def set_addstring():
+    global add_entry, table_name
+    add_entry = ( addstring.format( table_name ) )
 
 def init_freq_globals():
     global alph, beta, gamm, delt, thet, packet_counter, timestamp
@@ -35,7 +39,7 @@ def init_freq_globals():
     timestamp = 0
 
 def freq_handler(unused_addr, args, ch1 ):
-    global alph, beta, gamm, delt, thet, packet_counter, timestamp, cnx, cursor, add_entry
+    global alph, beta, gamm, delt, thet, packet_counter, timestamp, cnx, cursor, add_entry, table_name
     if args[0] is 'alpha':
         # We expect alpha packet to arrive first
         init_freq_globals()
@@ -56,8 +60,6 @@ def freq_handler(unused_addr, args, ch1 ):
         packet_counter -=1
         if packet_counter is not 0:
             print( "Somehow a packet was dropped!" )
-        #print( str(datetime.datetime.utcnow()), str('ABDTG'), alph, beta, delt, thet, gamm )
-        #print( timestamp, alph, beta, delt, thet, gamm )
         data_entry = ( alph, beta, gamm, delt, thet, timestamp ) 
         cursor.execute( add_entry, data_entry )
         cnx.commit()
@@ -74,13 +76,23 @@ if __name__ == "__main__":
                         default=5000,
                         help="The port to listen on")
     parser.add_argument("--source",
-                        #type=text,
                         default="/muse/eeg",
                         help="The Muse channel to listen for")
+    parser.add_argument("--table",
+                        default="bands",
+                        help="The name of the table to create (if non-existent) and store session data into." )
     args = parser.parse_args()
+    table_name = args.table
+    set_addstring() # depends on table_name
+    table_exists_str = "select exists( select * from information_schema.tables where table_schema = '{}' and table_name = '{}' );"
+    new_table_str = 'create table {} (entryID serial, alpha double precision(18,17), beta double precision(18,17), gamma double precision(18,17), delta double precision(18,17), theta double precision(18,17), timestamp double precision(20,10));'
 
-    # TODO: different channels have different # of parameters.
-
+    db_name = 'brainwave_freq' # TODO: parameterize?
+    table_exists = cursor.execute( table_exists_str.format( db_name, args.table ) ) # should return 0 or 1
+    result = cursor.fetchall();
+    if result[0][0] is 0:
+        print( "Creating new table {}...".format( args.table ) )
+        cursor.execute( new_table_str.format( args.table ) )
     dispatcher = dispatcher.Dispatcher()
     dispatcher.map("/debug", print)
     # short-circuting user selected channels to bring you all freq bands all the time

@@ -10,7 +10,7 @@ from pythonosc import osc_server
 def dump_file( filename="dump" ):
     cnx = mysql.connector.connect(user='root', database='brainwave_freq')
     cursor = cnx.cursor()
-    sql_cmd = ("select timestamp, alpha, beta, gamma, delta, theta into outfile '/Users/warren/Desktop/muse-experiments/{}.csv' fields terminated by ',' lines terminated by '\n' from bands;".format(filename) )
+    sql_cmd = ("select timestamp, alpha, beta, gamma, delta, theta into outfile '/Users/warren/Desktop/muse-experiments/{}.csv' fields terminated by ',' lines terminated by '\n' from {};".format(filename,filename) )
     cursor.execute( sql_cmd )
     cnx.commit()
     cursor.close()
